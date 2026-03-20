@@ -1,0 +1,25 @@
+# Rust
+/target
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+
+# uv
+train/.python-version
+
+# Dataset / tokenizer cache
+train/.cache/
+
+# Model checkpoints (large binaries)
+train/checkpoints/
+
+# WandB local run files
+train/wandb/
+
+# Compiled extensions
+*.so
+*.dylib
