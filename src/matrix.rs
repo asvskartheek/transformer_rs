@@ -1,4 +1,5 @@
 /// Row-major dense f32 matrix.
+#[derive(Clone)]
 pub struct Matrix {
     pub rows: usize,
     pub cols: usize,
@@ -71,16 +72,55 @@ impl Matrix {
     }
 
     /// self [m,k] × other [k,n] → [m,n]
+    ///
+    /// Uses the i-k-j loop order: the inner loop is a SAXPY over contiguous
+    /// slices of `b` and `c`, which the compiler auto-vectorises with SIMD.
     pub fn matmul(&self, other: &Matrix) -> Matrix {
         assert_eq!(self.cols, other.rows, "matmul shape mismatch");
-        let mut out = Matrix::zeros(self.rows, other.cols);
-        for i in 0..self.rows {
-            for k in 0..self.cols {
-                let a = self.get(i, k);
-                for j in 0..other.cols {
-                    let v = out.get(i, j) + a * other.get(k, j);
-                    out.set(i, j, v);
+        let m = self.rows;
+        let k = self.cols;
+        let n = other.cols;
+        let mut out = Matrix::zeros(m, n);
+        let a = &self.data;
+        let b = &other.data;
+        let c = &mut out.data;
+        for i in 0..m {
+            for p in 0..k {
+                let a_ip = a[i * k + p];
+                let b_row = &b[p * n..(p + 1) * n];
+                let c_row = &mut c[i * n..(i + 1) * n];
+                for j in 0..n {
+                    c_row[j] += a_ip * b_row[j];
                 }
+            }
+        }
+        out
+    }
+
+    /// self [m,k] × other^T where other is [n,k] → [m,n]
+    ///
+    /// Avoids materialising the transpose matrix.  Each output entry is a
+    /// dot-product of two rows, which the compiler auto-vectorises.
+    pub fn matmul_t(&self, other: &Matrix) -> Matrix {
+        // self: [m, k], other: [n, k]
+        assert_eq!(self.cols, other.cols, "matmul_t shape mismatch");
+        let m = self.rows;
+        let k = self.cols;
+        let n = other.rows;
+        let mut out = Matrix::zeros(m, n);
+        let a = &self.data;
+        let b = &other.data;
+        let c = &mut out.data;
+        for i in 0..m {
+            let a_row = &a[i * k..(i + 1) * k];
+            let c_row = &mut c[i * n..(i + 1) * n];
+            for j in 0..n {
+                let b_row = &b[j * k..(j + 1) * k];
+                let mut dot = 0.0f32;
+                for p in 0..k {
+                    dot += a_row[p] * b_row[p];
+                }
+                c_row[j] = dot;
             }
         }
         out
@@ -102,6 +142,15 @@ impl Matrix {
         assert_eq!(self.cols, other.cols);
         let data = self.data.iter().zip(&other.data).map(|(a, b)| a + b).collect();
         Matrix { rows: self.rows, cols: self.cols, data }
+    }
+
+    /// In-place element-wise addition.
+    pub fn add_inplace(&mut self, other: &Matrix) {
+        debug_assert_eq!(self.rows, other.rows);
+        debug_assert_eq!(self.cols, other.cols);
+        for (a, b) in self.data.iter_mut().zip(&other.data) {
+            *a += b;
+        }
     }
 
     pub fn scale_inplace(&mut self, s: f32) {

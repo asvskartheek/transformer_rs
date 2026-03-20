@@ -28,6 +28,8 @@ impl MultiHeadAttention {
 
     pub fn forward(&self, x: &Matrix, rope: &RopeCache) -> Matrix {
         let seq_len = x.rows;
+        let d_model = x.cols;
+        let hd = self.head_dim;
 
         // Linear projections → [seq_len, d_model]
         let mut q = x.matmul(&self.wq);
@@ -38,36 +40,69 @@ impl MultiHeadAttention {
         for pos in 0..seq_len {
             let qrow = q.row_mut(pos);
             for h in 0..self.n_heads {
-                let s = h * self.head_dim;
-                rope.apply(&mut qrow[s..s + self.head_dim], pos);
+                let s = h * hd;
+                rope.apply(&mut qrow[s..s + hd], pos);
             }
             let krow = k.row_mut(pos);
             for h in 0..self.n_heads {
-                let s = h * self.head_dim;
-                rope.apply(&mut krow[s..s + self.head_dim], pos);
+                let s = h * hd;
+                rope.apply(&mut krow[s..s + hd], pos);
             }
         }
 
-        // Compute attention per head, accumulate into output
-        let mut output = Matrix::zeros(seq_len, q.cols);
+        // Per-head attention without col_slice or transpose allocations.
+        // Reuse a single scores buffer across all heads.
+        let mut output = Matrix::zeros(seq_len, d_model);
+        let mut scores = vec![0.0f32; seq_len * seq_len];
 
         for h in 0..self.n_heads {
-            let s = h * self.head_dim;
-            let e = s + self.head_dim;
+            let hs = h * hd;  // head start column offset
 
-            let q_h = q.col_slice(s, e); // [seq_len, head_dim]
-            let k_h = k.col_slice(s, e);
-            let v_h = v.col_slice(s, e);
+            // scores[i,j] = dot(q[i, hs..hs+hd], k[j, hs..hs+hd]) * scale
+            // With causal masking: only compute j <= i, set rest to 0.
+            for i in 0..seq_len {
+                let qi = &q.data[i * d_model + hs..i * d_model + hs + hd];
+                let row = &mut scores[i * seq_len..(i + 1) * seq_len];
 
-            // scores = Q_h @ K_h^T · scale   [seq_len, seq_len]
-            let mut scores = q_h.matmul(&k_h.transpose());
-            scores.scale_inplace(self.scale);
-            scores.causal_mask();
-            scores.softmax_rows();
+                for j in 0..=i {
+                    let kj = &k.data[j * d_model + hs..j * d_model + hs + hd];
+                    let mut dot = 0.0f32;
+                    for p in 0..hd {
+                        dot += qi[p] * kj[p];
+                    }
+                    row[j] = dot * self.scale;
+                }
 
-            // context = scores @ V_h          [seq_len, head_dim]
-            let ctx = scores.matmul(&v_h);
-            output.write_col_slice(s, &ctx);
+                // Softmax over the causal window [0..=i] in-place
+                let window = &mut row[..=i];
+                let max = window.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+                let mut sum = 0.0f32;
+                for x in window.iter_mut() {
+                    *x = (*x - max).exp();
+                    sum += *x;
+                }
+                let inv = sum.recip();
+                for x in &mut row[..=i] {
+                    *x *= inv;
+                }
+                // Zero out the upper triangle so the V accumulation is clean
+                for x in &mut row[i + 1..seq_len] {
+                    *x = 0.0;
+                }
+            }
+
+            // context = scores @ V_h, accumulated into output[:, hs..hs+hd]
+            for i in 0..seq_len {
+                let out_row = &mut output.data[i * d_model + hs..i * d_model + hs + hd];
+                // Only j <= i is non-zero (causal)
+                for j in 0..=i {
+                    let s = scores[i * seq_len + j];
+                    let vj = &v.data[j * d_model + hs..j * d_model + hs + hd];
+                    for p in 0..hd {
+                        out_row[p] += s * vj[p];
+                    }
+                }
+            }
         }
 
         output.matmul(&self.wo)

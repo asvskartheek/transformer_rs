@@ -32,14 +32,16 @@ impl TransformerBlock {
     /// Pre-norm residual block:
     ///   x = x + Attention(RMSNorm(x))
     ///   x = x + FFN(RMSNorm(x))
-    pub fn forward(&self, x: &Matrix, rope: &RopeCache) -> Matrix {
-        let normed = self.attn_norm.forward(x);
+    pub fn forward(&self, x: Matrix, rope: &RopeCache) -> Matrix {
+        let normed = self.attn_norm.forward(&x);
         let attn_out = self.attention.forward(&normed, rope);
-        let x = x.add(&attn_out);
+        let mut x = x;
+        x.add_inplace(&attn_out);
 
         let normed = self.ffn_norm.forward(&x);
         let ffn_out = self.ffn.forward(&normed);
-        x.add(&ffn_out)
+        x.add_inplace(&ffn_out);
+        x
     }
 }
 
@@ -87,7 +89,7 @@ impl Transformer {
 
         // 4 transformer layers
         for layer in &self.layers {
-            x = layer.forward(&x, &self.rope);
+            x = layer.forward(x, &self.rope);
         }
 
         // Final norm + language-model head

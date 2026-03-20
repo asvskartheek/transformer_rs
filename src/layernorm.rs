@@ -14,13 +14,16 @@ impl RmsNorm {
 
     /// Normalise each row of `x` independently.
     pub fn forward(&self, x: &Matrix) -> Matrix {
-        let mut out = Matrix::zeros(x.rows, x.cols);
+        let cols = x.cols;
+        let inv_cols = (cols as f32).recip();
+        let mut out = Matrix::zeros(x.rows, cols);
         for i in 0..x.rows {
-            let row = x.row(i);
-            let ms: f32 = row.iter().map(|&v| v * v).sum::<f32>() / row.len() as f32;
+            let in_row = &x.data[i * cols..(i + 1) * cols];
+            let out_row = &mut out.data[i * cols..(i + 1) * cols];
+            let ms: f32 = in_row.iter().map(|&v| v * v).sum::<f32>() * inv_cols;
             let inv_rms = (ms + self.eps).sqrt().recip();
-            for j in 0..x.cols {
-                out.set(i, j, x.get(i, j) * inv_rms * self.weight[j]);
+            for j in 0..cols {
+                out_row[j] = in_row[j] * inv_rms * self.weight[j];
             }
         }
         out
