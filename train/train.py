@@ -37,6 +37,7 @@ LR_MAX         = 3e-4
 LR_MIN         = 3e-5
 WARMUP_STEPS   = 200
 GRAD_CLIP      = 1.0
+WEIGHT_DECAY   = 0.1
 CHECKPOINT_DIR = Path(__file__).parent / "checkpoints"
 
 
@@ -85,14 +86,14 @@ def train_model(cfg: ModelConfig):
     model     = Transformer(cfg)
     mx.eval(model.parameters())
 
-    optimizer = optim.AdamW(learning_rate=LR_MAX, weight_decay=0.1)
+    optimizer = optim.AdamW(learning_rate=LR_MAX, weight_decay=WEIGHT_DECAY)
 
     loss_and_grad = nn.value_and_grad(model, model.loss)
 
     # ── wandb ─────────────────────────────────────────────────────────────────
     run = wandb.init(
         project="transformer-rs-mlx",
-        name=f"{cfg.name}",
+        name=f"{cfg.name}_s{MAX_STEPS}_b{BATCH_SIZE}_lr{LR_MAX:.0e}",
         config={
             "model_size":  cfg.name,
             "d_model":     cfg.d_model,
@@ -109,6 +110,7 @@ def train_model(cfg: ModelConfig):
             "lr_min":      LR_MIN,
             "warmup_steps": WARMUP_STEPS,
             "grad_clip":   GRAD_CLIP,
+            "weight_decay": WEIGHT_DECAY,
             "dataset":     "roneneldan/TinyStories",
         },
         reinit=True,
@@ -191,18 +193,29 @@ def train_model(cfg: ModelConfig):
 # ── entry point ───────────────────────────────────────────────────────────────
 
 def main():
-    global MAX_STEPS  # noqa: PLW0603
+    global MAX_STEPS, BATCH_SIZE, LR_MAX, LR_MIN, WARMUP_STEPS, GRAD_CLIP, WEIGHT_DECAY  # noqa: PLW0603
     parser = argparse.ArgumentParser(description="Train MLX transformer on TinyStories")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--model", choices=list(CONFIGS.keys()),
                        help="Single model size to train")
     group.add_argument("--all",   action="store_true",
                        help="Train all model sizes sequentially")
-    parser.add_argument("--steps", type=int, default=MAX_STEPS,
-                        help=f"Training steps per model (default {MAX_STEPS})")
+    parser.add_argument("--steps",        type=int,   default=MAX_STEPS,    help=f"Training steps (default {MAX_STEPS})")
+    parser.add_argument("--batch-size",   type=int,   default=BATCH_SIZE,   help=f"Batch size (default {BATCH_SIZE})")
+    parser.add_argument("--lr-max",       type=float, default=LR_MAX,       help=f"Peak learning rate (default {LR_MAX})")
+    parser.add_argument("--lr-min",       type=float, default=LR_MIN,       help=f"Final learning rate (default {LR_MIN})")
+    parser.add_argument("--warmup",       type=int,   default=WARMUP_STEPS, help=f"Warmup steps (default {WARMUP_STEPS})")
+    parser.add_argument("--grad-clip",    type=float, default=GRAD_CLIP,    help=f"Gradient clip norm (default {GRAD_CLIP})")
+    parser.add_argument("--weight-decay", type=float, default=WEIGHT_DECAY, help=f"AdamW weight decay (default {WEIGHT_DECAY})")
     args = parser.parse_args()
 
-    MAX_STEPS = args.steps
+    MAX_STEPS    = args.steps
+    BATCH_SIZE   = args.batch_size
+    LR_MAX       = args.lr_max
+    LR_MIN       = args.lr_min
+    WARMUP_STEPS = args.warmup
+    GRAD_CLIP    = args.grad_clip
+    WEIGHT_DECAY = args.weight_decay
 
     sizes = list(CONFIGS.keys()) if args.all else [args.model]
     for name in sizes:
