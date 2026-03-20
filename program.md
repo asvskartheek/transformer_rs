@@ -28,7 +28,7 @@ Minimize `eval/loss` on the **tiny** model (0.6M params, 2 layers, d_model=64) t
 |---|-------|-------|--------|--------|--------|-------|---------------|
 | 1 | 5,000 | 16 | 3e-4 | 3e-5 | 200 | Baseline (W&B: 07xllm1m) | **2.871** |
 | 2 | 10,000 | 16 | 3e-4 | 3e-5 | 200 | 2× steps (W&B: flesu7iu) | **2.678** |
-| 3 | 10,000 | 32 | 6e-4 | 6e-5 | 400 | Linear scaling rule (W&B: running) | TBD |
+| 3 | 10,000 | 32 | 6e-4 | 6e-5 | 400 | Linear scaling rule (W&B: d40klm1z) | **2.452** |
 | 4 | 20,000 | 32 | 6e-4 | 6e-5 | 400 | 4× steps from baseline | TBD |
 
 ## Hyperparameter Strategy
