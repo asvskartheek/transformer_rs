@@ -1,0 +1,19 @@
+[package]
+name = "transformer_rs"
+version = "0.1.0"
+edition = "2021"
+
+[[bench]]
+name = "throughput"
+harness = false
+
+[dependencies]
+rand = { version = "0.8", features = ["small_rng"] }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[profile.bench]
+opt-level = 3
+lto = true
+codegen-units = 1
