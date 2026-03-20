@@ -38,7 +38,9 @@ Default config (matches the `medium` training run):
 | vocab\_size | 8192 |
 | max\_seq\_len | 512 |
 
-### Benchmark (Apple M2, 8 GB)
+### Rust benchmark (Apple M2, 8 GB) — `cargo bench`
+
+CPU-only, no ML framework.
 
 | seq\_len | throughput |
 |---|---|
@@ -46,6 +48,17 @@ Default config (matches the `medium` training run):
 | 128 | ~2 200 tok/s |
 | 256 | ~2 070 tok/s |
 | 512 | ~1 850 tok/s |
+
+### MLX inference benchmark — `tiny` model (trained, 5 000 steps on TinyStories)
+
+Metal GPU (Apple Silicon). Run with `uv run python train/benchmark.py --model tiny --checkpoint ...`
+
+| seq\_len | ms/run | tok/s |
+|---|---|---|
+| 64 | 1.9 | ~34 000 |
+| 128 | 2.2 | ~58 000 |
+| 256 | 1.4 | ~185 000 |
+| 512 | 3.3 | ~157 000 |
 
 ---
 
