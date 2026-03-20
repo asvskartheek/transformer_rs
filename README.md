@@ -46,12 +46,14 @@ CPU-only. Throughput scales with model size — smaller models are faster.
 cargo run --release -- --model <size> [--checkpoint <path>]
 ```
 
-| model | seq\_len=64 | seq\_len=128 | seq\_len=256 | seq\_len=512 |
-|---|---|---|---|---|
-| tiny (0.6M) | ~19 600 tok/s | ~28 100 tok/s | ~26 100 tok/s | ~21 900 tok/s |
-| medium (7.3M) | ~2 250 tok/s | ~2 190 tok/s | ~2 010 tok/s | ~1 840 tok/s |
+| model | params | trained? | seq=64 | seq=128 | seq=256 | seq=512 |
+|---|---|---|---|---|---|---|
+| tiny | 0.6M | ✅ 5k steps | 29 843 | 28 765 | 25 804 | 21 672 |
+| small | 1.8M | ✅ 5k steps | 8 479 | 7 999 | 7 189 | 5 944 |
+| medium | 7.3M | ❌ random | 2 228 | 2 073 | 2 044 | 1 801 |
+| large | 27M | ❌ random | 521 | 490 | 505 | 463 |
 
-Trained weights load the same speed as random — weight loading doesn't change throughput, only model size does.
+Throughput is purely a function of model size — trained vs random weights make no difference to inference speed.
 
 ---
 
