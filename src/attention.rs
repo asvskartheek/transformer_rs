@@ -26,6 +26,16 @@ impl MultiHeadAttention {
         }
     }
 
+    /// Construct from pre-loaded weight matrices (already transposed to Rust layout).
+    pub fn from_weights(config: &Config, wq: Matrix, wk: Matrix, wv: Matrix, wo: Matrix) -> Self {
+        Self {
+            wq, wk, wv, wo,
+            n_heads: config.n_heads,
+            head_dim: config.head_dim,
+            scale: (config.head_dim as f32).sqrt().recip(),
+        }
+    }
+
     pub fn forward(&self, x: &Matrix, rope: &RopeCache) -> Matrix {
         let seq_len = x.rows;
         let d_model = x.cols;

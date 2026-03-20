@@ -22,6 +22,12 @@ impl Matrix {
         Self { rows, cols, data: vec![0.0; rows * cols] }
     }
 
+    /// Construct from an existing flat buffer (row-major).
+    pub fn from_vec(rows: usize, cols: usize, data: Vec<f32>) -> Self {
+        assert_eq!(data.len(), rows * cols, "data length mismatch");
+        Self { rows, cols, data }
+    }
+
     /// Kaiming-normal initialisation: std = sqrt(2 / fan_in)
     pub fn random(rows: usize, cols: usize, rng: &mut impl rand::Rng) -> Self {
         let std = (2.0 / rows as f32).sqrt();

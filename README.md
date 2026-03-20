@@ -49,16 +49,20 @@ CPU-only, no ML framework.
 | 256 | ~2 070 tok/s |
 | 512 | ~1 850 tok/s |
 
-### MLX inference benchmark — `tiny` model (trained, 5 000 steps on TinyStories)
+### Rust inference with trained weights — `tiny` (5 000 steps on TinyStories)
 
-Metal GPU (Apple Silicon). Run with `uv run python train/benchmark.py --model tiny --checkpoint ...`
+CPU-only. Load a checkpoint trained by the Python/MLX pipeline:
 
-| seq\_len | ms/run | tok/s |
-|---|---|---|
-| 64 | 1.9 | ~34 000 |
-| 128 | 2.2 | ~58 000 |
-| 256 | 1.4 | ~185 000 |
-| 512 | 3.3 | ~157 000 |
+```bash
+cargo run --release -- --model tiny --checkpoint train/checkpoints/tiny_step5000.npz
+```
+
+| seq\_len | throughput |
+|---|---|
+| 64 | ~19 600 tok/s |
+| 128 | ~28 100 tok/s |
+| 256 | ~26 100 tok/s |
+| 512 | ~21 900 tok/s |
 
 ---
 

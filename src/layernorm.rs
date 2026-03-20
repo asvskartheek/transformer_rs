@@ -12,6 +12,10 @@ impl RmsNorm {
         Self { weight: vec![1.0; d_model], eps: 1e-6 }
     }
 
+    pub fn from_weight(weight: Vec<f32>) -> Self {
+        Self { weight, eps: 1e-6 }
+    }
+
     /// Normalise each row of `x` independently.
     pub fn forward(&self, x: &Matrix) -> Matrix {
         let cols = x.cols;

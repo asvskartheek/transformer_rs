@@ -13,10 +13,10 @@ use crate::{
 // ── single transformer block ──────────────────────────────────────────────────
 
 pub struct TransformerBlock {
-    attn_norm: RmsNorm,
-    attention: MultiHeadAttention,
-    ffn_norm: RmsNorm,
-    ffn: FeedForward,
+    pub attn_norm: RmsNorm,
+    pub attention: MultiHeadAttention,
+    pub ffn_norm: RmsNorm,
+    pub ffn: FeedForward,
 }
 
 impl TransformerBlock {
@@ -48,11 +48,11 @@ impl TransformerBlock {
 // ── full transformer ──────────────────────────────────────────────────────────
 
 pub struct Transformer {
-    embed: Matrix,           // [vocab_size, d_model]
-    layers: Vec<TransformerBlock>, // 4 layers
-    norm: RmsNorm,
-    lm_head: Matrix,         // [d_model, vocab_size]
-    rope: RopeCache,
+    pub embed: Matrix,           // [vocab_size, d_model]
+    pub layers: Vec<TransformerBlock>,
+    pub norm: RmsNorm,
+    pub lm_head: Matrix,         // [d_model, vocab_size]
+    pub rope: RopeCache,
     pub config: Config,
 }
 

@@ -16,6 +16,11 @@ impl FeedForward {
         }
     }
 
+    /// Construct from pre-loaded weight matrices (already transposed to Rust layout).
+    pub fn from_weights(w1: Matrix, w2: Matrix) -> Self {
+        Self { w1, w2 }
+    }
+
     pub fn forward(&self, x: &Matrix) -> Matrix {
         let mut hidden = x.matmul(&self.w1);
         gelu_inplace(&mut hidden);
