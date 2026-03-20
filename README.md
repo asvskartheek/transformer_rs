@@ -38,31 +38,20 @@ Default config (matches the `medium` training run):
 | vocab\_size | 8192 |
 | max\_seq\_len | 512 |
 
-### Rust benchmark (Apple M2, 8 GB) — `cargo bench`
+### Rust inference benchmark (Apple M2, 8 GB)
 
-CPU-only, no ML framework.
-
-| seq\_len | throughput |
-|---|---|
-| 64 | ~2 270 tok/s |
-| 128 | ~2 200 tok/s |
-| 256 | ~2 070 tok/s |
-| 512 | ~1 850 tok/s |
-
-### Rust inference with trained weights — `tiny` (5 000 steps on TinyStories)
-
-CPU-only. Load a checkpoint trained by the Python/MLX pipeline:
+CPU-only. Throughput scales with model size — smaller models are faster.
 
 ```bash
-cargo run --release -- --model tiny --checkpoint train/checkpoints/tiny_step5000.npz
+cargo run --release -- --model <size> [--checkpoint <path>]
 ```
 
-| seq\_len | throughput |
-|---|---|
-| 64 | ~19 600 tok/s |
-| 128 | ~28 100 tok/s |
-| 256 | ~26 100 tok/s |
-| 512 | ~21 900 tok/s |
+| model | seq\_len=64 | seq\_len=128 | seq\_len=256 | seq\_len=512 |
+|---|---|---|---|---|
+| tiny (0.6M) | ~19 600 tok/s | ~28 100 tok/s | ~26 100 tok/s | ~21 900 tok/s |
+| medium (7.3M) | ~2 250 tok/s | ~2 190 tok/s | ~2 010 tok/s | ~1 840 tok/s |
+
+Trained weights load the same speed as random — weight loading doesn't change throughput, only model size does.
 
 ---
 
